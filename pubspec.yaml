@@ -1,0 +1,40 @@
+name: glamora_movil
+description: "Glamora — app del equipo del salón (agenda, asistencia, comisiones y clientes)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_secure_storage: ^11.2.0
+  http: ^1.6.0
+  # Fijado por flutter_localizations (el SDK exige esta versión exacta).
+  intl: 0.20.2
+  provider: ^6.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+
+# Íconos: `dart run flutter_launcher_icons`
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/glamora-icon-square.png"
+  remove_alpha_ios: true
+  background_color_ios: "#2A2C35"
+  adaptive_icon_background: "#2A2C35"
+  adaptive_icon_foreground: "assets/images/glamora-adaptive-foreground.png"
+  min_sdk_android: 21
