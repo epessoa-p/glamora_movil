@@ -14,8 +14,10 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   http: ^1.6.0
   # Fijado por flutter_localizations (el SDK exige esta versión exacta).
+  image_picker: ^1.2.4
   intl: 0.20.2
   provider: ^6.1.5+1
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

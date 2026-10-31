@@ -4,6 +4,10 @@ import 'package:provider/provider.dart';
 import '../config.dart';
 import '../session.dart';
 import '../widgets/common.dart';
+import '../widgets/shell.dart';
+import 'commissions_screen.dart';
+import 'receivables_screen.dart';
+import 'schedule_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,7 +19,7 @@ class ProfileScreen extends StatelessWidget {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
+      appBar: AppBar(leading: shellLeading(context), title: const Text('Perfil')),
       body: RefreshIndicator(
         onRefresh: session.refresh,
         child: ListView(
@@ -45,6 +49,34 @@ class ProfileScreen extends StatelessWidget {
                     title: Text(me.company.name),
                     subtitle: const Text('Salón activo'),
                   ),
+                  // Con el Panel, Comisiones no tiene pestaña propia.
+                  if (me.can('dashboard') && me.can('commissions_own')) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.payments_outlined),
+                      title: const Text('Mis comisiones'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CommissionsScreen())),
+                    ),
+                  ],
+                  if (me.can('receivables')) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.receipt_long_outlined),
+                      title: const Text('Cuentas por cobrar'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReceivablesScreen())),
+                    ),
+                  ],
+                  if (me.can('schedule')) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.calendar_month_outlined),
+                      title: const Text('Mi horario'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleScreen())),
+                    ),
+                  ],
                   if (session.companies.length > 1) ...[
                     const Divider(height: 1),
                     ListTile(

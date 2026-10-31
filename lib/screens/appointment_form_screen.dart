@@ -291,7 +291,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
         ),
         _FieldError(_fieldErrors['starts_at']),
         const SizedBox(height: 12),
-        _AvailabilityCard(availability: _availability, loading: _loadingAvailability, hasPersonal: _personalId != null),
+        AvailabilityCard(availability: _availability, loading: _loadingAvailability, hasPersonal: _personalId != null),
         const SizedBox(height: 16),
         _Label('Duración'),
         DropdownButtonFormField<int>(
@@ -318,8 +318,8 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
   }
 }
 
-class _AvailabilityCard extends StatelessWidget {
-  const _AvailabilityCard({required this.availability, required this.loading, required this.hasPersonal});
+class AvailabilityCard extends StatelessWidget {
+  const AvailabilityCard({super.key, required this.availability, required this.loading, required this.hasPersonal});
 
   final DayAvailability? availability;
   final bool loading;

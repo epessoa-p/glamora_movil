@@ -7,6 +7,9 @@ import '../api/api_client.dart';
 import '../models.dart';
 import '../session.dart';
 import '../widgets/common.dart';
+import '../widgets/shell.dart';
+import 'birthdays_screen.dart';
+import 'client_detail_screen.dart';
 
 /// Búsqueda de clientes y alta rápida. Con [pickMode] devuelve el cliente
 /// elegido (lo usa el formulario de cita).
@@ -93,29 +96,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
       Navigator.pop(context, c);
       return;
     }
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Avatar(name: c.name, radius: 30),
-              const SizedBox(height: 10),
-              Text(c.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              if (c.phone != null) ListTile(leading: const Icon(Icons.phone_outlined), title: Text(c.phone!)),
-              if (c.document != null) ListTile(leading: const Icon(Icons.badge_outlined), title: Text(c.document!)),
-              if (c.email != null) ListTile(leading: const Icon(Icons.mail_outline), title: Text(c.email!)),
-              if (c.phone == null && c.document == null && c.email == null)
-                const Text('Sin datos de contacto. Puedes completarlos en Glamora web.'),
-            ],
-          ),
-        ),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => ClientDetailScreen(client: c)));
   }
 
   @override
@@ -123,7 +104,19 @@ class _ClientsScreenState extends State<ClientsScreen> {
     final canCreate = context.watch<Session>().me!.can('clients_create');
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.pickMode ? 'Elegir cliente' : 'Clientes')),
+      appBar: AppBar(
+        leading: shellLeading(context),
+        title: Text(widget.pickMode ? 'Elegir cliente' : 'Clientes'),
+        actions: [
+          if (!widget.pickMode && (context.read<Session>().me?.can('birthdays') ?? false))
+            IconButton(
+              tooltip: 'Cumpleaños',
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BirthdaysScreen())),
+              icon: const Icon(Icons.cake_outlined),
+            ),
+          const ProfileButton(),
+        ],
+      ),
       floatingActionButton: canCreate
           ? FloatingActionButton.extended(heroTag: null, onPressed: _create, icon: const Icon(Icons.person_add_alt), label: const Text('Nuevo'))
           : null,

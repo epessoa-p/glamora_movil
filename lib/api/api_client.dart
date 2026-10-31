@@ -103,6 +103,34 @@ class ApiClient {
 
   Future<dynamic> post(String path, [Map<String, Object?>? body]) => _send('POST', path, body: body ?? const {});
 
+  Future<dynamic> put(String path, [Map<String, Object?>? body]) => _send('PUT', path, body: body ?? const {});
+
+  Future<dynamic> delete(String path) => _send('DELETE', path);
+
+  /// Encabezados para cargar imágenes protegidas (fotos de clientes).
+  Map<String, String> get imageHeaders => {
+        if (token != null) 'Authorization': 'Bearer $token',
+        if (companyId != null) 'X-Company-Id': '$companyId',
+      };
+
+  /// Sube un archivo (multipart) con campos de texto adicionales.
+  Future<dynamic> upload(String path, {required String field, required List<int> bytes, required String filename, Map<String, String> fields = const {}}) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'))
+      ..headers.addAll({'Accept': 'application/json', ...imageHeaders})
+      ..fields.addAll(fields)
+      ..files.add(http.MultipartFile.fromBytes(field, bytes, filename: filename));
+
+    http.Response response;
+    try {
+      response = await http.Response.fromStream(await _http.send(request).timeout(const Duration(seconds: 60)));
+    } on TimeoutException {
+      throw ApiException.network('La subida tardó demasiado. Revisa tu conexión.');
+    } catch (_) {
+      throw ApiException.network('No se pudo subir el archivo. Revisa tu conexión a internet.');
+    }
+    return _decode(response);
+  }
+
   Future<dynamic> _send(String method, String path, {Map<String, Object?>? query, Map<String, Object?>? body}) async {
     final params = <String, String>{
       for (final e in (query ?? const {}).entries)
@@ -133,6 +161,11 @@ class ApiClient {
       throw ApiException.network('No se pudo conectar con el servidor. Revisa tu conexión a internet.');
     }
 
+    return _decode(response);
+  }
+
+  /// JSON de la respuesta, o [ApiException] si el estado no es 2xx.
+  dynamic _decode(http.Response response) {
     dynamic data;
     if (response.bodyBytes.isNotEmpty) {
       try {

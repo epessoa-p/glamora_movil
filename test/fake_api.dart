@@ -56,7 +56,7 @@ const companyJson = {'id': 2, 'name': 'CONTRASTE', 'logo_url': null, 'primary_co
 Map<String, dynamic> appointmentJson({int id = 12, String status = 'pendiente', String start = '2026-10-22T10:00:00-04:00'}) => {
       'id': id,
       'starts_at': start,
-      'ends_at': '2026-10-22T10:45:00-04:00',
+      'ends_at': start.replaceFirst(RegExp(r'T\d\d:\d\d'), 'T${start.substring(11, 13)}:45'),
       'status': status,
       'status_label': status == 'pendiente' ? 'Pendiente' : 'Confirmada',
       'status_color': status == 'pendiente' ? '#f59e0b' : '#3b82f6',

@@ -6,6 +6,7 @@ import '../session.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
+import '../widgets/shell.dart';
 
 /// Mis comisiones del mes (las mismas cifras que "Mis comisiones" en la web).
 class CommissionsScreen extends StatefulWidget {
@@ -57,7 +58,7 @@ class _CommissionsScreenState extends State<CommissionsScreen> {
     final isCurrent = _month.year == now.year && _month.month == now.month;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis comisiones')),
+      appBar: AppBar(leading: shellLeading(context), title: const Text('Mis comisiones'), actions: const [ProfileButton()]),
       body: Column(
         children: [
           Row(

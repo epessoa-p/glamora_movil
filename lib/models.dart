@@ -384,3 +384,172 @@ class CommissionReport {
   final double tips;
   final List<CommissionItem> items;
 }
+
+/// Paquete de sesiones del cliente (lo que le queda por servicio).
+class ClientPackageInfo {
+  const ClientPackageInfo({required this.name, required this.expiry, this.items = const []});
+
+  factory ClientPackageInfo.fromJson(Map<String, dynamic> j) => ClientPackageInfo(
+        name: _str(j['name']) ?? '',
+        expiry: _str(j['expiry']) ?? '',
+        items: _list(j['items']).map((i) => (service: _str(i['service']) ?? '', remaining: _int(i['remaining']), included: _int(i['included']))).toList(),
+      );
+
+  final String name;
+  final String expiry;
+  final List<({String service, int remaining, int included})> items;
+}
+
+/// Ficha del cliente (`GET /clients/{id}`). Los bloques que el plan o el
+/// rol no permiten vienen en null.
+class ClientProfile {
+  const ClientProfile({
+    required this.client,
+    this.currency = 'Bs',
+    this.visits = 0,
+    this.lastVisit,
+    this.purchases,
+    this.spent,
+    this.appointments = const [],
+    this.sales,
+    this.membership,
+    this.packages = const [],
+    this.points,
+    this.credit,
+    this.account,
+    this.birthdate,
+    this.notes,
+  });
+
+  factory ClientProfile.fromJson(Map<String, dynamic> j) {
+    final stats = (j['stats'] as Map<String, dynamic>?) ?? const {};
+    final m = j['membership'];
+    final p = j['points'];
+    final a = j['account'];
+
+    return ClientProfile(
+      client: ClientInfo.fromJson(j['client'] as Map<String, dynamic>),
+      currency: _str(j['currency']) ?? 'Bs',
+      visits: _int(stats['visits']),
+      lastVisit: stats['last_visit'] == null ? null : wallTime('${stats['last_visit']}'),
+      purchases: stats['purchases'] == null ? null : _int(stats['purchases']),
+      spent: stats['spent'] == null ? null : _num(stats['spent']),
+      appointments: _list(j['appointments'])
+          .map((x) => (
+                startsAt: wallTime(x['starts_at'] as String),
+                status: _str(x['status_label']) ?? '',
+                color: _str(x['status_color']),
+                service: _str(x['service']),
+                personal: _str(x['personal']),
+              ))
+          .toList(),
+      sales: j['sales'] == null
+          ? null
+          : _list(j['sales']).map((x) => (number: _str(x['number']) ?? '', date: x['date'] == null ? null : wallTime(x['date'] as String), total: _num(x['total']), voided: x['status'] == 'anulada')).toList(),
+      membership: m is Map<String, dynamic>
+          ? (plan: _str(m['plan']) ?? '', endsOn: _str(m['ends_on']) ?? '', discount: _num(m['discount']),
+              sessions: _list(m['sessions']).map((s) => '${s['service']}: ${s['remaining']}/${s['included']}').toList())
+          : null,
+      packages: _list(j['packages']).map(ClientPackageInfo.fromJson).toList(),
+      points: p is Map<String, dynamic> ? (balance: _int(p['balance']), value: _num(p['value'])) : null,
+      credit: j['credit'] == null ? null : _num(j['credit']),
+      birthdate: (j['client'] as Map<String, dynamic>)['birthdate'] == null ? null : DateTime.tryParse('${(j['client'] as Map)['birthdate']}'),
+      notes: _str((j['client'] as Map<String, dynamic>)['notes']),
+      account: a is Map<String, dynamic>
+          ? (enabled: a['enabled'] == true, debt: _num(a['debt']), available: _num(a['available']), overdue: a['overdue'] == true)
+          : null,
+    );
+  }
+
+  final ClientInfo client;
+  final String currency;
+  final int visits;
+  final DateTime? lastVisit;
+  final int? purchases;
+  final double? spent;
+  final List<({DateTime startsAt, String status, String? color, String? service, String? personal})> appointments;
+  final List<({String number, DateTime? date, double total, bool voided})>? sales;
+  final ({String plan, String endsOn, double discount, List<String> sessions})? membership;
+  final List<ClientPackageInfo> packages;
+  final ({int balance, double value})? points;
+  final double? credit;
+  final ({bool enabled, double debt, double available, bool overdue})? account;
+  final DateTime? birthdate;
+  final String? notes;
+}
+
+/// Foto antes/después de un cliente. Las URL piden el token (ApiClient.imageHeaders).
+class ClientPhotoInfo {
+  const ClientPhotoInfo({required this.id, required this.kind, required this.kindLabel, required this.takenOn, required this.url, required this.thumbUrl, this.notes, this.service});
+
+  factory ClientPhotoInfo.fromJson(Map<String, dynamic> j) => ClientPhotoInfo(
+        id: _int(j['id']),
+        kind: _str(j['kind']) ?? 'other',
+        kindLabel: _str(j['kind_label']) ?? '',
+        takenOn: DateTime.parse(j['taken_on'] as String),
+        url: _str(j['url']) ?? '',
+        thumbUrl: _str(j['thumb_url']) ?? '',
+        notes: _str(j['notes']),
+        service: _str(j['service']),
+      );
+
+  final int id;
+  final String kind;
+  final String kindLabel;
+  final DateTime takenOn;
+  final String url;
+  final String thumbUrl;
+  final String? notes;
+  final String? service;
+}
+
+/// Día de "Mi horario" (`GET /schedule`).
+class ScheduleDay {
+  const ScheduleDay({required this.date, this.off, this.special = false, this.blocks = const [], this.minutes = 0});
+
+  factory ScheduleDay.fromJson(Map<String, dynamic> j) => ScheduleDay(
+        date: DateTime.parse(j['date'] as String),
+        off: _str(j['off']),
+        special: j['special'] == true,
+        blocks: _list(j['blocks']).map(TimeBlock.fromJson).toList(),
+        minutes: _int(j['minutes']),
+      );
+
+  final DateTime date;
+
+  /// Motivo si ese día no trabaja por una excepción (vacaciones, permiso…).
+  final String? off;
+  final bool special;
+  final List<TimeBlock> blocks;
+  final int minutes;
+}
+
+/// Plantilla de mensaje para elegir en recordatorios y cumpleaños.
+class TemplateOption {
+  const TemplateOption(this.id, this.name, this.isDefault);
+
+  factory TemplateOption.fromJson(Map<String, dynamic> j) => TemplateOption(_int(j['id']), _str(j['name']) ?? '', j['is_default'] == true);
+
+  final int id;
+  final String name;
+  final bool isDefault;
+}
+
+/// Cumpleañero (`GET /birthdays`).
+class BirthdayInfo {
+  const BirthdayInfo({required this.client, required this.birthday, this.age, this.isToday = false, this.greetedAt});
+
+  factory BirthdayInfo.fromJson(Map<String, dynamic> j) => BirthdayInfo(
+        client: ClientInfo.fromJson(j),
+        birthday: DateTime.parse(j['birthday'] as String),
+        age: j['age'] == null ? null : _int(j['age']),
+        isToday: j['is_today'] == true,
+        greetedAt: j['greeted_at'] == null ? null : wallTime(j['greeted_at'] as String),
+      );
+
+  final ClientInfo client;
+  final DateTime birthday;
+  final int? age;
+  final bool isToday;
+  final DateTime? greetedAt;
+}

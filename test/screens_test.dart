@@ -94,7 +94,7 @@ void main() {
 
     expect(find.text('MARÍA LÓPEZ'), findsOneWidget);
     expect(find.text('10:00'), findsOneWidget);
-    for (final tab in ['Agenda', 'Asistencia', 'Comisiones', 'Clientes', 'Perfil']) {
+    for (final tab in ['Agenda', 'Asistencia', 'Comisiones', 'Clientes']) {
       expect(find.descendant(of: find.byType(NavigationBar), matching: find.text(tab)), findsOneWidget);
     }
     // Sin agenda_all no ve el selector de equipo; la agenda pide solo lo suyo.

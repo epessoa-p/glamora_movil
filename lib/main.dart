@@ -33,8 +33,9 @@ class GlamoraApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Glamora',
         debugShowCheckedModeBanner: false,
+        // Siempre claro, aunque el teléfono esté en modo oscuro.
         theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
+        themeMode: ThemeMode.light,
         locale: const Locale('es'),
         supportedLocales: const [Locale('es')],
         localizationsDelegates: const [

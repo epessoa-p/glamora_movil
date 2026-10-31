@@ -9,6 +9,8 @@ import '../session.dart';
 import '../theme.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
+import '../widgets/shell.dart';
+import 'schedule_screen.dart';
 
 /// Marcar entrada/salida y ver el resumen del mes.
 class AttendanceScreen extends StatefulWidget {
@@ -87,7 +89,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Asistencia')),
+      appBar: AppBar(
+        leading: shellLeading(context),
+        title: const Text('Asistencia'),
+        actions: [
+          if (context.read<Session>().me?.can('schedule') ?? false)
+            TextButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScheduleScreen())),
+              icon: const Icon(Icons.calendar_month_outlined),
+              label: const Text('Mi horario'),
+            ),
+          const ProfileButton(),
+        ],
+      ),
       body: Column(
         children: [
           if (_loading && _data != null) const LinearProgressIndicator(minHeight: 2),

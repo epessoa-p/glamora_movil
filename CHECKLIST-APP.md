@@ -17,7 +17,7 @@ Leyenda: ✅ hecho · 🟡 parcial / pendiente de verificar · ⬜ por hacer
 | ✅ | Errores JSON con `code` estable en `api/*` |
 | ✅ | Reglas de agendar compartidas web + app (`AppointmentService`) |
 | ✅ | Hora con zona (`…T14:00Z`) se convierte a la hora del salón |
-| ✅ | Endpoints: login, logout, salones, `/me`, agenda, opciones, disponibilidad, crear cita, cambiar estado, clientes (buscar/crear), asistencia (ver/marcar), comisiones |
+| ✅ | Endpoints: login, logout, salones, `/me`, agenda, opciones, disponibilidad, crear cita, cambiar estado, **reprogramar**, clientes (buscar/crear/**ficha**/**editar**/**fotos**), asistencia (ver/marcar), comisiones, **mi horario**, **recordatorios**, **cumpleaños**, **mensaje de WhatsApp** |
 | ✅ | Límite de 6 intentos de login por minuto |
 | ✅ | Tokens con vencimiento de 90 días; cerrar sesión revoca solo ese dispositivo |
 | ⬜ | **Producción:** ejecutar `actualizar_api_movil.sql`, `composer install --no-dev`, `php artisan config:clear` y `route:cache` |
@@ -95,7 +95,7 @@ Leyenda: ✅ hecho · 🟡 parcial / pendiente de verificar · ⬜ por hacer
 | Estado | Tarea |
 |---|---|
 | ✅ | `flutter analyze` sin observaciones |
-| ✅ | `flutter test`: 18 pruebas (cliente HTTP, sesión, modelos, pantallas de login, agenda, nueva cita fuera de horario, asistencia, comisiones) |
+| ✅ | `flutter test`: 31 pruebas (cliente HTTP, sesión, modelos, login, agenda día/semana, nueva cita y reprogramar fuera de horario, contacto, ficha del cliente, asistencia, comisiones) |
 | ✅ | Prueba contra servidor real (`test/live_api_test.dart`): login, cliente, cita, choque, agenda, estado, asistencia, comisiones, logout |
 | ✅ | API probada con curl: 26/26 |
 | ✅ | Compilar APK de debug (`build/app/outputs/flutter-apk/app-debug.apk`) |
@@ -108,10 +108,49 @@ Leyenda: ✅ hecho · 🟡 parcial / pendiente de verificar · ⬜ por hacer
 | Estado | Tarea |
 |---|---|
 | ⬜ | Notificaciones push (cita nueva, recordatorio, cambio de estado) con Firebase |
-| ⬜ | Llamar / WhatsApp al cliente desde la cita (`url_launcher`) |
-| ⬜ | Reprogramar cita (arrastrar o editar fecha/hora) |
-| ⬜ | Vista semanal de la agenda |
-| ⬜ | Ficha del cliente: historial, membresía y puntos |
+| ✅ | Llamar / WhatsApp al cliente desde la cita y la ficha (mensaje de recordatorio listo) |
+| ✅ | Reprogramar cita: fecha, hora, duración y profesional (con permiso), mismas reglas de horario que la web |
+| ✅ | Vista semanal de la agenda (tocar un día lo abre) |
+| ✅ | Ficha del cliente: visitas, gastado, deuda, membresía, paquetes, puntos, saldo a favor, últimas citas y compras |
+| ✅ | Fotos antes/después del cliente: galería, tomar foto o elegir de la galería, ver con zoom, eliminar (privadas, con permiso) |
 | ⬜ | Marcar asistencia con ubicación (solo dentro del salón) |
 | ⬜ | Modo sin conexión (ver la agenda del día ya cargada) |
 | ⬜ | App para clientes del salón (reservar en línea) — producto aparte |
+
+## 6. Funciones de la web que aún no están en la app
+
+Comparación con el menú de Glamora web (octubre 2026). La app está pensada para el
+**equipo del salón**; algunas funciones de administración conviene dejarlas solo en la web.
+
+Prioridad: 🔴 alta (uso diario en el celular) · 🟠 media (gerencia / dueño) · ⚪ solo web (configuración)
+
+### Equipo (uso diario)
+| Estado | Prioridad | Función de la web | Para qué en la app |
+|---|---|---|---|
+| ✅ | 🔴 | **Recordatorios** (Agenda) | Avisar las citas de mañana por WhatsApp con un clic desde el celular, con registro y «Confirmó» |
+| ✅ | 🔴 | **Cumpleaños** (Marketing) | Saludar a los cumpleañeros del día con su cupón |
+| ✅ | 🔴 | **Mi horario** (Personal › Horarios) | Ver mis turnos de la semana y mis días libres |
+| ✅ | 🔴 | **Editar cliente** (Clientes) | Corregir teléfono, cumpleaños, notas y alergias (hoy solo se crea) |
+| ✅ | 🟠 | **Cobrar / Punto de venta** (Ventas) | Cobrar una cita desde el celular (servicios, membresía, paquetes, cupón, propina, forma de pago). Pendiente: venta a crédito y uso de saldo a favor (por ahora, en la web) |
+| ✅ | 🟠 | **Mis ventas** (Ventas) | Ver las ventas del día y su detalle |
+
+### Gerencia y dueño
+| Estado | Prioridad | Función de la web | Para qué en la app |
+|---|---|---|---|
+| ✅ | 🟠 | **Panel del día** (Dashboard) | Ventas del día y del mes, citas, caja abierta, stock bajo, cumpleaños |
+| ✅ | 🟠 | **Caja** (Arqueos, Ingresos, Gastos) | Abrir/cerrar caja, registrar un gasto rápido |
+| ✅ | 🟠 | **Cuentas por cobrar** | Ver quién debe y registrar un cobro con recibo |
+| ✅ | 🟠 | **Asistencia del equipo** | Quién llegó, quién está en turno, tardanzas del día (dentro del Panel) |
+| ⬜ | 🟠 | **Comisiones del equipo / Liquidaciones** | Ver lo pendiente por profesional |
+| ⬜ | 🟠 | **Campañas** (Marketing) | Enviar una campaña uno a uno desde el celular |
+| ⬜ | 🟠 | **Reportes** | Resumen de ventas, servicios y clientes |
+| ⬜ | 🟠 | **Devoluciones / Cotizaciones** (Ventas) | Consultar y registrar desde el celular |
+
+### Solo web (administración y catálogos)
+| Estado | Prioridad | Función de la web |
+|---|---|---|
+| ⚪ | — | Servicios, categorías, combos y paquetes (catálogo) |
+| ⚪ | — | Inventario: productos, marcas, existencias · Compras, proveedores, devoluciones a proveedor, cuentas por pagar |
+| ⚪ | — | Membresías (planes) y fidelización (configuración) · Cupones, promociones y plantillas |
+| ⚪ | — | Personal, cargos, horarios del equipo · Reglas de comisión |
+| ⚪ | — | Configuración: sucursales, usuarios, roles, métodos de pago, preferencias, mi empresa · Plataforma (super admin) |

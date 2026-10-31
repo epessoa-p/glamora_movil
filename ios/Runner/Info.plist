@@ -6,6 +6,10 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Glamora usa la cámara para tomar fotos de antes y después de los clientes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Glamora usa tus fotos para guardar el antes y después de los clientes.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Glamora</string>
 	<key>CFBundleExecutable</key>
