@@ -111,8 +111,12 @@ void main() {
     expect(q['date'], ymd(monday));
     expect(find.byKey(const ValueKey('week-day-0')), findsOneWidget);
     expect(find.text('Esta semana'), findsOneWidget);
+    // La cita es de hoy: según el día de la semana puede quedar abajo de la pantalla.
+    await tester.scrollUntilVisible(find.text('MARÍA LÓPEZ'), 150, scrollable: find.byType(Scrollable).first);
     expect(find.text('MARÍA LÓPEZ'), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(ValueKey('week-day-${today.weekday - 1}')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('week-day-${today.weekday - 1}')));
     await tester.pumpAndSettle();
     expect(fake.last('GET /agenda').url.queryParameters.containsKey('days'), isFalse);

@@ -21,16 +21,50 @@ Future<void> main() async {
   session.restore();
 }
 
-class GlamoraApp extends StatelessWidget {
+class GlamoraApp extends StatefulWidget {
   const GlamoraApp({super.key, required this.session});
 
   final Session session;
+
+  @override
+  State<GlamoraApp> createState() => _GlamoraAppState();
+}
+
+class _GlamoraAppState extends State<GlamoraApp> {
+  final _navigator = GlobalKey<NavigatorState>();
+  SessionStatus? _status;
+  int? _companyId;
+
+  Session get session => widget.session;
+
+  @override
+  void initState() {
+    super.initState();
+    session.addListener(_onSession);
+  }
+
+  @override
+  void dispose() {
+    session.removeListener(_onSession);
+    super.dispose();
+  }
+
+  /// Sesión cerrada o salón cambiado: vuelve a la raíz (las pantallas
+  /// apiladas, como Perfil o Caja, leían al usuario anterior).
+  void _onSession() {
+    final companyId = session.me?.company.id;
+    final left = _status == SessionStatus.ready && (session.status != SessionStatus.ready || companyId != _companyId);
+    _status = session.status;
+    _companyId = companyId;
+    if (left) _navigator.currentState?.popUntil((route) => route.isFirst);
+  }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: session,
       child: MaterialApp(
+        navigatorKey: _navigator,
         title: 'Glamora',
         debugShowCheckedModeBanner: false,
         // Siempre claro, aunque el teléfono esté en modo oscuro.

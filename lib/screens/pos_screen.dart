@@ -213,7 +213,7 @@ class _PosScreenState extends State<PosScreen> {
         ],
       ),
     );
-    ctrl.dispose();
+    // Sin dispose: el diálogo sigue dibujándose durante su animación de salida.
     if (value != null && value >= 0) _changed(() => line.price = value);
   }
 
@@ -715,8 +715,7 @@ class _ClientSheetState extends State<_ClientSheet> {
         );
       },
     );
-    name.dispose();
-    phone.dispose();
+    // Sin dispose: el diálogo sigue dibujándose durante su animación de salida.
     if (created != null && mounted) Navigator.pop(context, (client: created));
   }
 

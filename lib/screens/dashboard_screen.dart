@@ -8,6 +8,7 @@ import '../util/format.dart';
 import '../widgets/common.dart';
 import '../widgets/shell.dart';
 import 'birthdays_screen.dart';
+import 'cash_screen.dart';
 import 'receivables_screen.dart';
 
 /// Panel del día para gerencia: ventas, citas, caja, equipo y cuentas por
@@ -47,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final d = _data;
 
     return Scaffold(
-      appBar: AppBar(leading: shellLeading(context), title: Text(me.company.name), actions: const [ProfileButton()]),
+      appBar: AppBar(leading: shellLeading(context), title: Text(me.company.name), actions: const [CashButton(), ProfileButton()]),
       body: _error != null && d == null
           ? ErrorView(message: _error!, onRetry: _load)
           : d == null
@@ -84,11 +85,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   runSpacing: 6,
                   children: [
                     for (final m in (sales['by_method'] as List).cast<Map<String, dynamic>>())
-                      Chip(
-                        visualDensity: VisualDensity.compact,
-                        backgroundColor: Colors.white24,
-                        side: BorderSide.none,
-                        label: Text('${m['method']}: ${money(_n(m['amount']), cur)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: .18), borderRadius: BorderRadius.circular(20)),
+                        child: Text('${m['method']}: ${money(_n(m['amount']), cur)}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
                       ),
                   ],
                 ),
@@ -138,6 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: Icons.point_of_sale_outlined,
         title: 'Caja',
         trailing: cash.isEmpty ? 'Cerrada' : '${cash.length} abierta(s)',
+        onTap: me.can('cash_view') ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CashScreen())) : null,
         child: cash.isEmpty
             ? Text('No hay cajas abiertas.', style: TextStyle(color: muted))
             : Column(children: [

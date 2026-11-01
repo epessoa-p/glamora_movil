@@ -53,7 +53,8 @@ class _SalesScreenState extends State<SalesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final me = context.watch<Session>().me!;
+    final me = context.watch<Session>().me;
+    if (me == null) return const Scaffold(); // sesión cerrada: la pantalla se está yendo
     final d = _data;
     final today = sameDay(_day, DateTime.now());
 

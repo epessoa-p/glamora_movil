@@ -58,7 +58,7 @@ class _CommissionsScreenState extends State<CommissionsScreen> {
     final isCurrent = _month.year == now.year && _month.month == now.month;
 
     return Scaffold(
-      appBar: AppBar(leading: shellLeading(context), title: const Text('Mis comisiones'), actions: const [ProfileButton()]),
+      appBar: AppBar(leading: shellLeading(context), title: const Text('Mis comisiones'), actions: const [CashButton(), ProfileButton()]),
       body: Column(
         children: [
           Row(

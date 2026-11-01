@@ -16,8 +16,10 @@ import 'pos_screen.dart';
 import 'profile_screen.dart';
 import 'receivables_screen.dart';
 import 'reminders_screen.dart';
+import 'reports_screen.dart';
 import 'sales_screen.dart';
 import 'schedule_screen.dart';
+import 'services_screen.dart';
 
 class _Tab {
   const _Tab(this.label, this.icon, this.selectedIcon, this.page);
@@ -105,6 +107,8 @@ class _HomeDrawer extends StatelessWidget {
       if (me.can('sales_create')) ('Cobrar', Icons.point_of_sale, const PosScreen()),
       if (me.can('sales_create') || me.can('sales_view')) ('Ventas', Icons.receipt_outlined, const SalesScreen()),
       if (me.can('cash_view')) ('Caja', Icons.account_balance_wallet_outlined, const CashScreen()),
+      if (me.can('reports')) ('Reportes', Icons.insights_outlined, const ReportsScreen()),
+      if (me.can('services_view')) ('Servicios', Icons.content_cut, const ServicesScreen()),
       if (me.can('dashboard') && me.can('commissions_own')) ('Mis comisiones', Icons.payments_outlined, const CommissionsScreen()),
       if (me.can('receivables')) ('Cuentas por cobrar', Icons.receipt_long_outlined, const ReceivablesScreen()),
       if (me.can('reminders')) ('Recordatorios', Icons.notifications_active_outlined, const RemindersScreen()),

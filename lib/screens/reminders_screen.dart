@@ -106,7 +106,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final me = context.watch<Session>().me!;
+    final me = context.watch<Session>().me;
+    if (me == null) return const Scaffold(); // sesión cerrada: la pantalla se está yendo
     final today = dateOnly(DateTime.now());
     final tomorrow = today.add(const Duration(days: 1));
     final visible = _onlyPending ? _items.where((it) => it.$2 == null).toList() : _items;

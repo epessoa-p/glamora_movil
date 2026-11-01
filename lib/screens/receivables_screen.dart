@@ -204,7 +204,8 @@ class _ReceivableClientScreenState extends State<ReceivableClientScreen> {
   @override
   Widget build(BuildContext context) {
     final d = _data;
-    final me = context.watch<Session>().me!;
+    final me = context.watch<Session>().me;
+    if (me == null) return const Scaffold(); // sesión cerrada: la pantalla se está yendo
 
     return Scaffold(
       appBar: AppBar(title: const Text('Estado de cuenta')),

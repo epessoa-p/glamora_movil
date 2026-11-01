@@ -15,7 +15,8 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
-    final me = session.me!;
+    final me = session.me;
+    if (me == null) return const Scaffold(); // sesión cerrada: la pantalla se está yendo
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Scaffold(

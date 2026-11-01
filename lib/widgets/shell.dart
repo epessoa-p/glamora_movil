@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../screens/cash_screen.dart';
 import '../screens/profile_screen.dart';
 import '../session.dart';
 import 'common.dart';
@@ -23,6 +24,22 @@ Widget? shellLeading(BuildContext context) {
   final shell = HomeShell.maybeOf(context);
   if (shell == null) return null;
   return IconButton(tooltip: 'Menú', onPressed: shell.openDrawer, icon: const Icon(Icons.menu));
+}
+
+/// Acceso rápido a la caja, a la izquierda del perfil (con permiso de caja).
+class CashButton extends StatelessWidget {
+  const CashButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final me = context.watch<Session>().me;
+    if (me == null || !me.can('cash_view') || HomeShell.maybeOf(context) == null) return const SizedBox.shrink();
+    return IconButton(
+      tooltip: 'Caja',
+      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CashScreen())),
+      icon: const Icon(Icons.point_of_sale_outlined),
+    );
+  }
 }
 
 /// Avatar arriba a la derecha que abre el perfil (solo en las pestañas del inicio).

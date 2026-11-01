@@ -143,13 +143,13 @@ Prioridad: 🔴 alta (uso diario en el celular) · 🟠 media (gerencia / dueño
 | ✅ | 🟠 | **Asistencia del equipo** | Quién llegó, quién está en turno, tardanzas del día (dentro del Panel) |
 | ⬜ | 🟠 | **Comisiones del equipo / Liquidaciones** | Ver lo pendiente por profesional |
 | ⬜ | 🟠 | **Campañas** (Marketing) | Enviar una campaña uno a uno desde el celular |
-| ⬜ | 🟠 | **Reportes** | Resumen de ventas, servicios y clientes |
+| ✅ | 🟠 | **Reportes** | Resumen de ventas, servicios y clientes |
 | ⬜ | 🟠 | **Devoluciones / Cotizaciones** (Ventas) | Consultar y registrar desde el celular |
 
 ### Solo web (administración y catálogos)
 | Estado | Prioridad | Función de la web |
 |---|---|---|
-| ⚪ | — | Servicios, categorías, combos y paquetes (catálogo) |
+| ⚪ | — | Combos y paquetes (catálogo). Servicios y categorías ya se crean y editan desde la app |
 | ⚪ | — | Inventario: productos, marcas, existencias · Compras, proveedores, devoluciones a proveedor, cuentas por pagar |
 | ⚪ | — | Membresías (planes) y fidelización (configuración) · Cupones, promociones y plantillas |
 | ⚪ | — | Personal, cargos, horarios del equipo · Reglas de comisión |

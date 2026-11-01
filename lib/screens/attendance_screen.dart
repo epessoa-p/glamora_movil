@@ -99,6 +99,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               icon: const Icon(Icons.calendar_month_outlined),
               label: const Text('Mi horario'),
             ),
+          const CashButton(),
           const ProfileButton(),
         ],
       ),

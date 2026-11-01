@@ -114,6 +114,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BirthdaysScreen())),
               icon: const Icon(Icons.cake_outlined),
             ),
+          const CashButton(),
           const ProfileButton(),
         ],
       ),

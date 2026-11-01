@@ -188,7 +188,8 @@ class _CashSessionScreenState extends State<CashSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final s = _s;
-    final me = context.watch<Session>().me!;
+    final me = context.watch<Session>().me;
+    if (me == null) return const Scaffold(); // sesión cerrada: la pantalla se está yendo
     final open = s?['status'] == 'open';
 
     return Scaffold(
