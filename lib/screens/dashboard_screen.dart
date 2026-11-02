@@ -48,7 +48,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final d = _data;
 
     return Scaffold(
-      appBar: AppBar(leading: shellLeading(context), title: Text(me.company.name), actions: const [CashButton(), ProfileButton()]),
+      appBar: AppBar(leading: shellLeading(context), title: Text(me.personal?.fullName ?? me.user.name), actions: const [CashButton(), ProfileButton()]),
       body: _error != null && d == null
           ? ErrorView(message: _error!, onRetry: _load)
           : d == null

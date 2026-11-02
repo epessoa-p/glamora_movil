@@ -74,10 +74,11 @@ void main() {
     await tester.pumpAndSettle();
 
     final drawer = find.byType(Drawer);
-    for (final item in ['Panel', 'Agenda', 'Asistencia', 'Clientes', 'Mis comisiones', 'Cuentas por cobrar', 'Cumpleaños', 'Mi perfil', 'Cerrar sesión']) {
+    for (final item in ['Panel', 'Agenda', 'Asistencia', 'Clientes', 'Mis comisiones', 'Cuentas por cobrar', 'Cumpleaños', 'Cerrar sesión']) {
       await tester.scrollUntilVisible(find.descendant(of: drawer, matching: find.text(item)), 80, scrollable: find.descendant(of: drawer, matching: find.byType(Scrollable)));
       expect(find.descendant(of: drawer, matching: find.text(item)), findsOneWidget, reason: item);
     }
+    expect(find.descendant(of: drawer, matching: find.text('Mi perfil')), findsNothing, reason: 'el perfil se abre desde el avatar de arriba');
     await tester.scrollUntilVisible(find.descendant(of: drawer, matching: find.text('Agenda')), -80, scrollable: find.descendant(of: drawer, matching: find.byType(Scrollable)));
 
     // Una pestaña cambia la vista del inicio y cierra el menú.

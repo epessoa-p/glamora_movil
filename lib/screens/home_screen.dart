@@ -20,6 +20,7 @@ import 'reports_screen.dart';
 import 'sales_screen.dart';
 import 'schedule_screen.dart';
 import 'services_screen.dart';
+import 'settings_screen.dart';
 
 class _Tab {
   const _Tab(this.label, this.icon, this.selectedIcon, this.page);
@@ -107,7 +108,6 @@ class _HomeDrawer extends StatelessWidget {
       if (me.can('sales_create')) ('Cobrar', Icons.point_of_sale, const PosScreen()),
       if (me.can('sales_create') || me.can('sales_view')) ('Ventas', Icons.receipt_outlined, const SalesScreen()),
       if (me.can('cash_view')) ('Caja', Icons.account_balance_wallet_outlined, const CashScreen()),
-      if (me.can('reports')) ('Reportes', Icons.insights_outlined, const ReportsScreen()),
       if (me.can('services_view')) ('Servicios', Icons.content_cut, const ServicesScreen()),
       if (me.can('dashboard') && me.can('commissions_own')) ('Mis comisiones', Icons.payments_outlined, const CommissionsScreen()),
       if (me.can('receivables')) ('Cuentas por cobrar', Icons.receipt_long_outlined, const ReceivablesScreen()),
@@ -160,8 +160,10 @@ class _HomeDrawer extends StatelessWidget {
             const Divider(indent: 16, endIndent: 16),
             for (final (label, icon, screen) in more) _item(context, label, icon, onTap: () => open(screen)),
           ],
+          // Mi perfil está en el avatar de arriba; aquí van Reportes y Configuración.
           const Divider(indent: 16, endIndent: 16),
-          _item(context, 'Mi perfil', Icons.person_outline, onTap: () => open(const ProfileScreen())),
+          if (me.can('reports')) _item(context, 'Reportes', Icons.insights_outlined, onTap: () => open(const ReportsScreen())),
+          if (SettingsScreen.visibleFor(me)) _item(context, 'Configuración', Icons.settings_outlined, onTap: () => open(const SettingsScreen())),
           if (session.companies.length > 1)
             _item(context, 'Cambiar de salón', Icons.swap_horiz, onTap: () {
               Navigator.pop(context);
