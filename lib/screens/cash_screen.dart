@@ -10,6 +10,18 @@ import '../widgets/common.dart';
 double _n(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
 double? _parse(String s) => double.tryParse(s.trim().replaceAll(',', '.'));
 
+/// Abre la caja: con un solo turno abierto va directo a él; si no, al listado
+/// (para abrir una o elegir entre varias). Al volver actualiza el distintivo.
+Future<void> openCashFlow(BuildContext context) async {
+  final session = context.read<Session>();
+  final open = session.openCash;
+  await Navigator.push(
+    context,
+    MaterialPageRoute(builder: (_) => open.length == 1 ? CashSessionScreen(sessionId: open.first.id) : const CashScreen()),
+  );
+  await session.refreshCash();
+}
+
 /// Cajas del salón: cuáles están abiertas y con cuánto.
 class CashScreen extends StatefulWidget {
   const CashScreen({super.key});
@@ -54,6 +66,7 @@ class _CashScreenState extends State<CashScreen> {
     );
     if (session == null || !mounted) return;
     showMessage(context, 'Caja abierta.');
+    context.read<Session>().refreshCash();
     await Navigator.push(context, MaterialPageRoute(builder: (_) => CashSessionScreen(sessionId: session['id'] as int)));
     _load();
   }
@@ -183,6 +196,7 @@ class _CashSessionScreenState extends State<CashSessionScreen> {
     if (result == null || !mounted) return;
     showMessage(context, '${result['message']}');
     setState(() => _s = result['session'] as Map<String, dynamic>);
+    context.read<Session>().refreshCash();
   }
 
   @override

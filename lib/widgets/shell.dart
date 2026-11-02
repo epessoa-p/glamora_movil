@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../screens/cash_screen.dart';
 import '../screens/profile_screen.dart';
 import '../session.dart';
+import '../theme.dart';
 import 'common.dart';
 
 /// Da a las pestañas del inicio acceso al menú lateral. Las pantallas abiertas
@@ -32,12 +33,19 @@ class CashButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final me = context.watch<Session>().me;
+    final session = context.watch<Session>();
+    final me = session.me;
     if (me == null || !me.can('cash_view') || HomeShell.maybeOf(context) == null) return const SizedBox.shrink();
+    final open = session.openCash.isNotEmpty;
+    // Punto verde = hay caja abierta · rojo = todas cerradas.
     return IconButton(
-      tooltip: 'Caja',
-      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CashScreen())),
-      icon: const Icon(Icons.point_of_sale_outlined),
+      tooltip: open ? 'Caja abierta' : 'Caja cerrada',
+      onPressed: () => openCashFlow(context),
+      icon: Badge(
+        smallSize: 10,
+        backgroundColor: open ? Brand.success : Brand.danger,
+        child: Icon(open ? Icons.point_of_sale : Icons.point_of_sale_outlined, color: open ? Brand.primary : null),
+      ),
     );
   }
 }

@@ -60,6 +60,28 @@ class Session extends ChangeNotifier {
   /// Aviso para la pantalla de inicio de sesión (p. ej. sesión vencida).
   String? notice;
 
+  /// Turnos de caja abiertos del salón (para el botón de caja de la cabecera).
+  List<({int id, String name})> openCash = [];
+
+  /// Vuelve a consultar qué cajas están abiertas (solo con permiso de caja).
+  Future<void> refreshCash() async {
+    if (!(me?.can('cash_view') ?? false)) {
+      openCash = [];
+      return;
+    }
+    try {
+      final d = await api.get('/cash') as Map<String, dynamic>;
+      if (me == null) return; // se cerró la sesión mientras tanto
+      openCash = [
+        for (final r in (d['registers'] as List).cast<Map<String, dynamic>>())
+          if (r['session'] is Map) (id: (r['session'] as Map)['id'] as int, name: '${r['name']}'),
+      ];
+      notifyListeners();
+    } on ApiException {
+      // Sin red o sin acceso: se conserva lo último conocido.
+    }
+  }
+
   /// Al abrir la app: si hay token guardado, se valida con `/me`.
   Future<void> restore() async {
     final token = await store.read(_tokenKey);
@@ -128,6 +150,7 @@ class Session extends ChangeNotifier {
         await _fetchCompanies();
       }
       _set(SessionStatus.ready);
+      refreshCash();
     } on ApiException catch (e) {
       if (e.status == 401) {
         return; // onUnauthorized ya cerró la sesión.
@@ -160,6 +183,7 @@ class Session extends ChangeNotifier {
     api.companyId = null;
     me = null;
     companies = [];
+    openCash = [];
     error = null;
     this.notice = notice;
     await store.write(_tokenKey, null);

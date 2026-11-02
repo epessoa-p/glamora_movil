@@ -6,6 +6,7 @@ import 'package:glamora_movil/main.dart';
 import 'package:glamora_movil/screens/login_screen.dart';
 import 'package:glamora_movil/session.dart';
 import 'package:glamora_movil/util/format.dart';
+import 'package:glamora_movil/widgets/common.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'fake_api.dart';
@@ -21,9 +22,13 @@ void main() {
   };
 
   Map<String, dynamic> report(String type) => {
-        'available': [{'key': 'ventas', 'label': 'Ventas'}, {'key': 'caja', 'label': 'Caja'}],
+        'available': [{'key': 'ventas', 'label': 'Ventas'}, {'key': 'caja', 'label': 'Caja'}, {'key': 'ganancias', 'label': 'Ganancias'}],
         'type': type, 'from': '2026-11-01', 'to': '2026-11-01', 'currency': 'Bs',
-        'report': type == 'caja'
+        'report': type == 'ganancias'
+            ? {'kpis': [{'label': 'Ganancia neta', 'value': '13,800.00', 'color': '#10b981'}], 'tables': [
+                {'title': 'Estado de resultados', 'head': ['Concepto', 'Monto'], 'rows': [['Ventas netas', '15,430.00'], ['Ganancia neta', '13,800.00']]},
+              ], 'note': 'El costo de productos usa el costo actual.'}
+            : type == 'caja'
             ? {'kpis': [{'label': 'Ingresos', 'value': '500.00', 'color': '#10b981'}], 'tables': [
                 {'title': 'Arqueos cerrados', 'head': ['Caja', 'Cierre', 'Esperado', 'Contado', 'Diferencia'], 'rows': [['CAJA PRINCIPAL', '01/11/2026 19:20', '1,160.00', '1,160.00', '0.00']]},
               ]}
@@ -64,7 +69,9 @@ void main() {
       ..on('POST /services', {'message': 'Servicio creado.', 'service': {}}, status: 201)
       ..on('PUT /services/5', {'message': 'Servicio actualizado.', 'service': {}})
       ..on('POST /service-categories', {'id': 9, 'name': 'UÑAS'}, status: 201);
-    fake.routes['GET /reports'] = (req) => FakeApi.json(report(req.url.queryParameters['type'] ?? 'ventas'));
+    fake.routes['GET /reports'] = (req) => req.url.queryParameters['meta'] == '1'
+        ? FakeApi.json({'available': report('ventas')['available']})
+        : FakeApi.json(report(req.url.queryParameters['type'] ?? 'ventas'));
     return fake;
   }
 
@@ -105,7 +112,7 @@ void main() {
     expect(find.text('Efectivo: Bs 575.00'), findsOneWidget);
     expect(find.byType(Chip), findsNothing, reason: 'las etiquetas ya no son Chip (salían blanco sobre blanco)');
 
-    await tester.tap(find.byTooltip('Caja'));
+    await tester.tap(find.byTooltip('Caja cerrada'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Caja'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
@@ -158,7 +165,11 @@ void main() {
   testWidgets('reportes: indicadores, tablas, cambio de tipo y período', (tester) async {
     final fake = await start(tester);
     await openFromMenu(tester, 'Reportes');
+    expect(find.text('Análisis'), findsNothing, reason: 'sin acceso a análisis no se muestra su tarjeta');
+    await tester.tap(find.text('Resumen por área'));
+    await tester.pumpAndSettle();
     expect(find.text('1,470.00'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Ganancias'), findsNothing, reason: 'Ganancias tiene su propia tarjeta');
     expect(find.text('Por metodo de pago'), findsOneWidget);
     expect(find.text('Efectivo'), findsOneWidget);
     expect(find.text('Sin datos en el período.'), findsOneWidget);
@@ -175,5 +186,54 @@ void main() {
     expect(q['from'], today);
     expect(q['to'], today);
     expect(q['type'], 'caja', reason: 'mantiene el tipo elegido');
+  });
+
+  testWidgets('reportes: la tarjeta Ganancias abre su reporte con la nota', (tester) async {
+    final fake = await start(tester);
+    await openFromMenu(tester, 'Reportes');
+    await tester.tap(find.text('Ganancias'));
+    await tester.pumpAndSettle();
+    expect(fake.last('GET /reports').url.queryParameters['type'], 'ganancias');
+    expect(find.widgetWithText(AppBar, 'Ganancias'), findsOneWidget);
+    expect(find.text('Estado de resultados'), findsOneWidget);
+    expect(find.textContaining('costo actual'), findsOneWidget);
+  });
+
+  testWidgets('caja abierta: distintivo verde y el botón va directo al turno', (tester) async {
+    final fake = server()
+      ..on('GET /cash', {'currency': 'Bs', 'registers': [{'id': 1, 'name': 'CAJA PRINCIPAL', 'session': {'id': 5, 'status': 'open', 'opened_at': '${today}T08:50:00-04:00', 'opening': 200, 'expected': 1660}}], 'can': {'open': true, 'move': true, 'close': true}})
+      ..on('GET /cash/5', {'id': 5, 'status': 'open', 'opened_at': '${today}T08:50:00-04:00', 'opening': 200, 'expected': 1660, 'register': 'CAJA PRINCIPAL',
+        'closed_at': null, 'counted': null, 'difference': null, 'income': 1460, 'expense': 0, 'sales_count': 9, 'by_method': [], 'movements': []});
+    final store = MemorySessionStore()..values.addAll({'token': 't', 'company_id': '2'});
+    final session = Session(fake.client(), store);
+    await tester.pumpWidget(GlamoraApp(session: session));
+    await session.restore();
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Caja abierta'), findsOneWidget);
+    await tester.tap(find.byTooltip('Caja abierta'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'CAJA PRINCIPAL'), findsOneWidget, reason: 'abre el turno, no el listado');
+    expect(find.text('Bs 1,660.00'), findsOneWidget);
+  });
+
+  testWidgets('menú lateral: logo del salón (o sus iniciales) con el nombre al costado', (tester) async {
+    await start(tester);
+    await tester.tap(find.byTooltip('Menú'));
+    await tester.pumpAndSettle();
+    final logo = find.byType(CompanyLogo);
+    expect(logo, findsOneWidget);
+    expect(find.descendant(of: logo, matching: find.text('C')), findsOneWidget, reason: 'sin logo: iniciales de CONTRASTE');
+    // El nombre queda a la derecha del logo, a la misma altura.
+    final logoBox = tester.getRect(logo);
+    final nameBox = tester.getRect(find.descendant(of: find.byType(Drawer), matching: find.text('CONTRASTE')));
+    expect(nameBox.left, greaterThan(logoBox.right));
+    expect(nameBox.top, lessThan(logoBox.bottom));
+  });
+
+  testWidgets('logo con URL rota: muestra las iniciales sin error', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: CompanyLogo(name: 'Demo Full', url: 'no-es-una-url'))));
+    expect(find.text('DF'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

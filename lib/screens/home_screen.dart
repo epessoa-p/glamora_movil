@@ -126,17 +126,21 @@ class _HomeDrawer extends StatelessWidget {
             decoration: const BoxDecoration(
               gradient: LinearGradient(colors: [Brand.primary, Brand.rose], begin: Alignment.topLeft, end: Alignment.bottomRight),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // Logo del salón y, al costado, su nombre y el de quien usa la app.
+            child: Row(
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Avatar(name: name, radius: 27),
+                CompanyLogo(name: me.company.name, url: me.company.logoUrl, radius: 30),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(me.company.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 2),
+                      Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.white.withValues(alpha: .85), fontSize: 13)),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Text(name, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
-                Text(me.company.name, style: TextStyle(color: Colors.white.withValues(alpha: .85), fontSize: 13)),
               ],
             ),
           ),

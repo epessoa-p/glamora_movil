@@ -5,7 +5,7 @@ import '../session.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
 
-/// Reportes: los mismos de la web (indicadores y tablas) por período.
+/// Reportes: una tarjeta por reporte. Cada una abre su vista.
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
 
@@ -13,10 +13,122 @@ class ReportsScreen extends StatefulWidget {
   State<ReportsScreen> createState() => _ReportsScreenState();
 }
 
+/// Tarjetas del menú: título, descripción, icono, color y tipos del servidor.
+const _cards = [
+  (
+    title: 'Resumen por área',
+    detail: 'Ventas, servicios, clientes, inventario, compras y caja del período.',
+    icon: Icons.dashboard_customize_outlined,
+    color: Color(0xFF6366F1),
+    types: ['ventas', 'servicios', 'clientes', 'inventario', 'compras', 'caja'],
+  ),
+  (
+    title: 'Análisis',
+    detail: 'Comparación con el período anterior, días y horas con más ventas y ventas por profesional.',
+    icon: Icons.query_stats,
+    color: Color(0xFFEC4899),
+    types: ['analisis'],
+  ),
+  (
+    title: 'Ganancias',
+    detail: 'Ventas netas, costo de lo vendido, comisiones, gastos y ganancia neta con su margen.',
+    icon: Icons.savings_outlined,
+    color: Color(0xFF10B981),
+    types: ['ganancias'],
+  ),
+];
+
 class _ReportsScreenState extends State<ReportsScreen> {
+  Set<String>? _available;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _error = null);
+    try {
+      final d = await context.read<Session>().api.get('/reports', {'meta': '1'}) as Map<String, dynamic>;
+      if (mounted) setState(() => _available = {for (final t in (d['available'] as List).cast<Map<String, dynamic>>()) '${t['key']}'});
+    } catch (e) {
+      if (mounted) setState(() => _error = errorText(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final available = _available;
+    final cards = available == null ? const [] : _cards.where((c) => c.types.any(available.contains)).toList();
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Reportes')),
+      body: _error != null
+          ? ErrorView(message: _error!, onRetry: _load)
+          : available == null
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(padding: const EdgeInsets.all(16), children: [
+                    if (cards.isEmpty) const EmptyView(text: 'No tienes reportes disponibles.', icon: Icons.insights_outlined),
+                    for (final c in cards) ...[
+                      Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => ReportViewScreen(title: c.title, types: c.types.where(available.contains).toList())),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(color: c.color.withValues(alpha: .12), borderRadius: BorderRadius.circular(14)),
+                                child: Icon(c.icon, color: c.color),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(c.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 2),
+                                  Text(c.detail, style: TextStyle(color: muted, fontSize: 13)),
+                                ]),
+                              ),
+                              const Icon(Icons.chevron_right),
+                            ]),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ]),
+                ),
+    );
+  }
+}
+/// Vista de un reporte (o un grupo de ellos, como pestañas): indicadores y
+/// tablas por período, los mismos de la web.
+class ReportViewScreen extends StatefulWidget {
+  const ReportViewScreen({super.key, required this.title, required this.types});
+
+  final String title;
+
+  /// Tipos del servidor que muestra esta vista (el primero es el inicial).
+  final List<String> types;
+
+  @override
+  State<ReportViewScreen> createState() => _ReportViewScreenState();
+}
+
+class _ReportViewScreenState extends State<ReportViewScreen> {
   late DateTimeRange _range = _preset('month');
   String _preset_ = 'month';
-  String? _type;
+  late String? _type = widget.types.first;
   Map<String, dynamic>? _data;
   String? _error;
   bool _loading = false;
@@ -83,10 +195,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final d = _data;
-    final available = ((d?['available'] as List?) ?? const []).cast<Map<String, dynamic>>();
+    // Solo los tipos de esta vista (el servidor devuelve todos los disponibles).
+    final available = ((d?['available'] as List?) ?? const []).cast<Map<String, dynamic>>().where((t) => widget.types.contains(t['key'])).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reportes')),
+      appBar: AppBar(title: Text(widget.title)),
       body: Column(children: [
         // Período
         SizedBox(
@@ -182,6 +295,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ),
         ]);
       }),
+      if (report['note'] != null) ...[
+        const SizedBox(height: 10),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(Icons.info_outline, size: 16, color: muted),
+          const SizedBox(width: 6),
+          Expanded(child: Text('${report['note']}', style: TextStyle(color: muted, fontSize: 12))),
+        ]),
+      ],
       for (final t in tables) ...[
         const SizedBox(height: 16),
         Text('${t['title']}', style: const TextStyle(fontWeight: FontWeight.w700)),

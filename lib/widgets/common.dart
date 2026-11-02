@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../theme.dart';
 import '../util/format.dart';
 
 /// Mensaje de error a pantalla completa con botón de reintento.
@@ -135,4 +136,37 @@ Future<bool> confirm(BuildContext context, {required String title, required Stri
   );
 
   return result ?? false;
+}
+
+/// Logo de la empresa en un círculo blanco. Sin logo, si la imagen no carga
+/// o mientras carga, muestra las iniciales del salón (nunca un error).
+class CompanyLogo extends StatelessWidget {
+  const CompanyLogo({super.key, required this.name, this.url, this.radius = 28});
+
+  final String name;
+  final String? url;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Center(
+      child: Text(initials(name), style: TextStyle(color: Brand.primary, fontWeight: FontWeight.w800, fontSize: radius * .7)),
+    );
+    final hasUrl = url != null && url!.trim().isNotEmpty && Uri.tryParse(url!)?.hasScheme == true;
+
+    return Container(
+      width: radius * 2,
+      height: radius * 2,
+      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .12), blurRadius: 6)]),
+      clipBehavior: Clip.antiAlias,
+      child: hasUrl
+          ? Image.network(
+              url!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => fallback,
+              loadingBuilder: (_, child, progress) => progress == null ? child : fallback,
+            )
+          : fallback,
+    );
+  }
 }

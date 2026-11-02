@@ -138,7 +138,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         icon: Icons.point_of_sale_outlined,
         title: 'Caja',
         trailing: cash.isEmpty ? 'Cerrada' : '${cash.length} abierta(s)',
-        onTap: me.can('cash_view') ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CashScreen())) : null,
+        onTap: me.can('cash_view') ? () => openCashFlow(context).then((_) => _load()) : null,
         child: cash.isEmpty
             ? Text('No hay cajas abiertas.', style: TextStyle(color: muted))
             : Column(children: [
