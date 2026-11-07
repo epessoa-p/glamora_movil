@@ -45,28 +45,36 @@ class _Centered extends StatelessWidget {
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
-    // ListView para que funcione el "deslizar para actualizar" aun vacío.
-    return LayoutBuilder(
-      builder: (context, box) => ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
+    final content = Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(minHeight: box.maxHeight),
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 56, color: muted.withValues(alpha: .5)),
-                  const SizedBox(height: 12),
-                  Text(text, textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 15)),
-                  if (action != null) ...[const SizedBox(height: 16), action!],
-                ],
-              ),
-            ),
-          ),
+          Icon(icon, size: 56, color: muted.withValues(alpha: .5)),
+          const SizedBox(height: 12),
+          Text(text, textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 15)),
+          if (action != null) ...[const SizedBox(height: 16), action!],
         ],
       ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, box) {
+        // Dentro de otra lista (alto sin límite) una lista propia no puede medirse.
+        if (!box.hasBoundedHeight) return content;
+
+        // ListView para que funcione el "deslizar para actualizar" aun vacío.
+        return ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(minHeight: box.maxHeight),
+              child: Center(child: content),
+            ),
+          ],
+        );
+      },
     );
   }
 }

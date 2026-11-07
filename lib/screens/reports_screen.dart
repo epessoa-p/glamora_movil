@@ -4,6 +4,10 @@ import 'package:provider/provider.dart';
 import '../session.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
+import 'analysis_screen.dart';
+import 'finance_report_screen.dart';
+import 'inventory_report_screen.dart';
+import 'profit_screen.dart';
 
 /// Reportes: una tarjeta por reporte. Cada una abre su vista.
 class ReportsScreen extends StatefulWidget {
@@ -24,17 +28,31 @@ const _cards = [
   ),
   (
     title: 'Análisis',
-    detail: 'Comparación con el período anterior, días y horas con más ventas y ventas por profesional.',
+    detail: 'Gráficos comparativos de servicios, ventas, compras y personal, horas con más ventas y lo más vendido.',
     icon: Icons.query_stats,
     color: Color(0xFFEC4899),
     types: ['analisis'],
   ),
   (
     title: 'Ganancias',
-    detail: 'Ventas netas, costo de lo vendido, comisiones, gastos y ganancia neta con su margen.',
+    detail: 'Lo que queda de lo vendido: por productos y servicios, por día, por venta y lo que más deja.',
     icon: Icons.savings_outlined,
     color: Color(0xFF10B981),
     types: ['ganancias'],
+  ),
+  (
+    title: 'Finanzas',
+    detail: 'El dinero que entró y salió: resultados, movimientos de caja y cuentas, y cierres de caja.',
+    icon: Icons.account_balance_outlined,
+    color: Color(0xFF0EA5E9),
+    types: ['finanzas'],
+  ),
+  (
+    title: 'Inventario',
+    detail: 'Cuánto hay y cuánto vale, por categoría, y qué reponer, qué está detenido y qué se vende sin ganar.',
+    icon: Icons.inventory_2_outlined,
+    color: Color(0xFFF59E0B),
+    types: ['inventario'],
   ),
 ];
 
@@ -80,7 +98,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         child: InkWell(
                           onTap: () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => ReportViewScreen(title: c.title, types: c.types.where(available.contains).toList())),
+                            MaterialPageRoute(builder: (_) => c.types.first == 'analisis' ? const AnalysisScreen() : c.types.first == 'ganancias' ? const ProfitScreen() : c.types.first == 'finanzas' ? const FinanceReportScreen() : c.types.first == 'inventario' ? const InventoryReportScreen() : ReportViewScreen(title: c.title, types: c.types.where(available.contains).toList())),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.all(16),

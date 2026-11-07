@@ -12,6 +12,7 @@ import 'cash_screen.dart';
 import 'clients_screen.dart';
 import 'commissions_screen.dart';
 import 'dashboard_screen.dart';
+import 'finance_screen.dart';
 import 'pos_screen.dart';
 import 'profile_screen.dart';
 import 'receivables_screen.dart';
@@ -107,7 +108,9 @@ class _HomeDrawer extends StatelessWidget {
     final more = [
       if (me.can('sales_create')) ('Cobrar', Icons.point_of_sale, const PosScreen()),
       if (me.can('sales_create') || me.can('sales_view')) ('Ventas', Icons.receipt_outlined, const SalesScreen()),
-      if (me.can('cash_view')) ('Caja', Icons.account_balance_wallet_outlined, const CashScreen()),
+      if (me.can('cash_view')) ('Caja', Icons.point_of_sale_outlined, const CashScreen()),
+      if (me.can('expenses_view')) ('Gastos', Icons.request_quote_outlined, const ExpensesScreen()),
+      if (FinanceScreen.visibleFor(session)) ('Finanzas', Icons.account_balance_outlined, const FinanceScreen()),
       if (me.can('services_view')) ('Servicios', Icons.content_cut, const ServicesScreen()),
       if (me.can('dashboard') && me.can('commissions_own')) ('Mis comisiones', Icons.payments_outlined, const CommissionsScreen()),
       if (me.can('receivables')) ('Cuentas por cobrar', Icons.receipt_long_outlined, const ReceivablesScreen()),

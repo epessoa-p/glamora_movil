@@ -188,17 +188,6 @@ void main() {
     expect(q['type'], 'caja', reason: 'mantiene el tipo elegido');
   });
 
-  testWidgets('reportes: la tarjeta Ganancias abre su reporte con la nota', (tester) async {
-    final fake = await start(tester);
-    await openFromMenu(tester, 'Reportes');
-    await tester.tap(find.text('Ganancias'));
-    await tester.pumpAndSettle();
-    expect(fake.last('GET /reports').url.queryParameters['type'], 'ganancias');
-    expect(find.widgetWithText(AppBar, 'Ganancias'), findsOneWidget);
-    expect(find.text('Estado de resultados'), findsOneWidget);
-    expect(find.textContaining('costo actual'), findsOneWidget);
-  });
-
   testWidgets('caja abierta: distintivo verde y el botón va directo al turno', (tester) async {
     final fake = server()
       ..on('GET /cash', {'currency': 'Bs', 'registers': [{'id': 1, 'name': 'CAJA PRINCIPAL', 'session': {'id': 5, 'status': 'open', 'opened_at': '${today}T08:50:00-04:00', 'opening': 200, 'expected': 1660}}], 'can': {'open': true, 'move': true, 'close': true}})
