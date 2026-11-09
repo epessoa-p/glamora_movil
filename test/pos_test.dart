@@ -257,4 +257,44 @@ void main() {
     expect(find.text('Faltante'), findsOneWidget);
     expect(find.text('Gasto'), findsNothing, reason: 'cerrada: sin acciones');
   });
+testWidgets('caja: cierre contando billetes y monedas, y otras formas aparte', (tester) async {
+    final fake = await start(tester);
+    final open = {
+      ...sessionJson(expected: 101.5),
+      'income': 1.5, 'expense': 0, 'legacy': false,
+      'other_methods': [{'method': 'QR', 'in': 50, 'out': 5, 'net': 45}, {'method': 'Tarjeta', 'in': 30, 'out': 0, 'net': 30}],
+      'close_mode': 'denominaciones',
+      'denominations': [{'value': 100, 'kind': 'billete'}, {'value': 0.5, 'kind': 'moneda'}],
+    };
+    fake
+      ..on('GET /cash', {'currency': 'Bs', 'registers': [{'id': 1, 'name': 'CAJA PRINCIPAL', 'session': {'id': 5, 'status': 'open', 'opened_at': '2026-10-29T08:00:00-04:00', 'opening': 100, 'expected': 101.5}}], 'can': {'open': true, 'move': true, 'close': true}})
+      ..on('GET /cash/5', open)
+      ..on('POST /cash/5/close', {'message': 'Caja cerrada: cuadra exacto.', 'session': {...open, 'status': 'closed', 'closed_at': '2026-10-29T20:00:00-04:00', 'counted': 101.5, 'difference': 0, 'closing_count': [{'value': 100, 'kind': 'billete', 'qty': 1}, {'value': 0.5, 'kind': 'moneda', 'qty': 3}]}});
+    await openFromMenu(tester, 'Caja');
+    await tester.tap(find.text('CAJA PRINCIPAL'));
+    await tester.pumpAndSettle();
+    expect(find.text('Efectivo que debería haber en caja'), findsOneWidget);
+    expect(find.text('Ingresos en efectivo'), findsOneWidget);
+    expect(find.text('Otras formas de pago'), findsOneWidget);
+    expect(find.text('No entran en el conteo de efectivo.'), findsOneWidget);
+    expect(find.text('Bs 75.00'), findsOneWidget, reason: 'total de otras formas');
+
+    await tester.tap(find.text('Cerrar'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Contar efectivo'), findsOneWidget);
+    expect(find.text('Billete de 100'), findsOneWidget);
+    expect(find.text('Moneda de 0.50'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('qty-100')), '1');
+    await tester.pump();
+    expect(find.text('Faltante Bs 1.50'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('qty-0.5')), '3');
+    await tester.pump();
+    expect(find.text('Bs 101.50'), findsWidgets);
+    expect(find.text('Exacto'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Cerrar caja'));
+    await tester.pumpAndSettle();
+    expect(fake.body('POST /cash/5/close'), {'closing_count': [{'value': 100, 'qty': 1}, {'value': 0.5, 'qty': 3}]});
+    expect(find.text('Conteo: 1 × 100 · 3 × 0.50'), findsOneWidget);
+    expect(find.text('Efectivo esperado al cierre'), findsOneWidget);
+  });
 }

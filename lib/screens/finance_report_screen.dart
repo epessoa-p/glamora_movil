@@ -311,7 +311,7 @@ class _MovementsTab extends _ReportTab {
 
 class _MovementsTabState extends _TabState<_MovementsTab> {
   static const _hints = {
-    'caja': 'Solo movimientos de caja: es lo que cuadra con los cierres.',
+    'caja': 'Movimientos de caja de todas las formas de pago. El cierre cuenta solo el efectivo.',
     'tesoreria': 'Solo movimientos de las cuentas, también las transferencias.',
     'todo': 'Caja y cuentas juntas, sin las transferencias entre ellas.',
   };
@@ -503,6 +503,9 @@ class _ClosingsTabState extends _TabState<_ClosingsTab> {
     final open = s['status'] == 'open';
     final others = _list(s['others']);
     final othersNet = _n(s['others_net']);
+    // Cerrado antes de contar solo el efectivo: su esperado sumaba todas las formas.
+    final legacy = s['legacy'] == true;
+    final count = _list(s['count']);
     final name = [s['register'], s['branch']].where((v) => v != null && '$v'.isNotEmpty).join(' · ');
     final small = TextStyle(color: muted, fontSize: 12.5);
     return Card(
@@ -522,16 +525,20 @@ class _ClosingsTabState extends _TabState<_ClosingsTab> {
           _row('Apertura', money(_n(s['opening']), cur)),
           _row('Ingresos efectivo', money(_n(s['cash_in']), cur), color: Brand.success),
           _row('Egresos efectivo', money(_n(s['cash_out']), cur), color: Brand.danger),
-          if (othersNet.abs() >= 0.005) _row('Otros medios', money(othersNet, cur)),
+          if (legacy && othersNet.abs() >= 0.005) _row('Otros medios', money(othersNet, cur)),
           const Divider(height: 18),
-          _row('Esperado en caja', money(_n(s['expected']), cur), bold: true),
+          _row(legacy ? 'Esperado en caja' : 'Esperado en efectivo', money(_n(s['expected']), cur), bold: true),
           if (s['counted'] != null) ...[
             _row('Contado', money(_n(s['counted']), cur)),
             _difference(_n(s['difference'])),
           ],
+          if (count.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text('Conteo: ${count.map((c) => '${c['qty']} × ${_n(c['value']) == _n(c['value']).roundToDouble() ? _n(c['value']).toStringAsFixed(0) : _n(c['value']).toStringAsFixed(2)}').join(' · ')}', style: small),
+          ],
           if (others.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Text('Otros medios: ${others.map((o) => '${o['method']} ${money(_n(o['amount']), cur)}').join(' · ')}', style: small),
+            Text('Otros medios${legacy ? '' : ' (no se cuentan)'}: ${others.map((o) => '${o['method']} ${money(_n(o['amount']), cur)}').join(' · ')}', style: small),
           ],
         ]),
       ),

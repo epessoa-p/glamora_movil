@@ -20,7 +20,7 @@ const paymentIcons = <String, (String, IconData)>{
 
 IconData paymentIcon(String? icon) => paymentIcons[icon]?.$2 ?? Icons.credit_card_outlined;
 
-/// Métodos de pago del salón (los que ofrece el cobro y la caja).
+/// Formas de pago del salón (las que ofrece el cobro y la caja) y cómo se cuenta al cerrar caja.
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
 
@@ -63,7 +63,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Métodos de pago')),
+      appBar: AppBar(title: const Text('Formas de pago')),
       floatingActionButton: can['create'] == true
           ? FloatingActionButton.extended(heroTag: null, onPressed: () => _open(), icon: const Icon(Icons.add), label: const Text('Nuevo'))
           : null,
@@ -76,13 +76,14 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   child: methods.isEmpty
                       ? ListView(children: const [
                           SizedBox(height: 80),
-                          EmptyView(text: 'Sin métodos configurados: el cobro usa Efectivo, Tarjeta, Transferencia y QR.', icon: Icons.credit_card_outlined),
+                          EmptyView(text: 'Sin formas configuradas: el cobro usa Efectivo, QR, Tarjeta, Transferencia y Billetera móvil.', icon: Icons.credit_card_outlined),
                         ])
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(8, 4, 8, 96),
-                          itemCount: methods.length,
-                          separatorBuilder: (_, _) => const Divider(height: 1, indent: 16, endIndent: 16),
+                          itemCount: methods.length + 1,
+                          separatorBuilder: (_, i) => i == methods.length - 1 ? const SizedBox(height: 8) : const Divider(height: 1, indent: 16, endIndent: 16),
                           itemBuilder: (_, i) {
+                            if (i == methods.length) return _CloseSettingsCard(data: (d['close'] as Map?)?.cast<String, dynamic>(), canEdit: can['close_settings'] == true, onSaved: _load);
                             final m = methods[i];
                             final active = m['active'] == true;
                             return ListTile(
@@ -94,8 +95,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                               subtitle: Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Wrap(spacing: 6, runSpacing: 4, children: [
-                                  if (m['is_default'] == true) const StatusPill(label: 'Predeterminado', color: Brand.primary),
-                                  if (m['affects_cash'] == true) const StatusPill(label: 'Entra a caja', color: Brand.success),
+                                  if (m['is_system'] == true) const StatusPill(label: 'Siempre habilitado', color: Brand.success),
+                                  if (m['is_default'] == true) const StatusPill(label: 'Predeterminada', color: Brand.primary),
+                                  if (m['affects_cash'] == true && m['is_system'] != true) const StatusPill(label: 'Cuenta como efectivo', color: Brand.success),
                                   if (!active) const StatusPill(label: 'Inactivo', color: Brand.danger),
                                 ]),
                               ),
@@ -108,7 +110,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   }
 }
 
-/// Crear o editar un método de pago.
+/// Crear o editar una forma de pago.
 class PaymentMethodFormScreen extends StatefulWidget {
   const PaymentMethodFormScreen({super.key, this.method});
 
@@ -130,6 +132,9 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
   String? _error;
 
   bool get _editing => widget.method != null;
+
+  /// Efectivo: siempre habilitado y siempre cuenta como efectivo.
+  bool get _system => widget.method?['is_system'] == true;
 
   @override
   void dispose() {
@@ -175,7 +180,7 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_editing ? 'Editar método' : 'Nuevo método de pago')),
+      appBar: AppBar(title: Text(_editing ? 'Editar forma de pago' : 'Nueva forma de pago')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         TextField(
           controller: _name,
@@ -199,14 +204,14 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: _affectsCash,
-          title: const Text('Entra a la caja'),
-          subtitle: const Text('Actívalo para el efectivo: suma al arqueo de caja'),
-          onChanged: _saving ? null : (v) => setState(() => _affectsCash = v),
+          title: const Text('Cuenta como efectivo'),
+          subtitle: Text(_system ? 'El efectivo está siempre habilitado y siempre se cuenta' : 'Entra al conteo del cierre de caja'),
+          onChanged: _saving || _system ? null : (v) => setState(() => _affectsCash = v),
         ),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
           value: _isDefault,
-          title: const Text('Predeterminado'),
+          title: const Text('Predeterminada'),
           subtitle: const Text('Se elige solo al cobrar'),
           onChanged: _saving ? null : (v) => setState(() => _isDefault = v),
         ),
@@ -214,9 +219,9 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             value: _active,
-            title: const Text('Activo'),
-            subtitle: const Text('Los inactivos no aparecen al cobrar'),
-            onChanged: _saving ? null : (v) => setState(() => _active = v),
+            title: const Text('Activa'),
+            subtitle: Text(_system ? 'El efectivo está siempre habilitado' : 'Las inactivas no aparecen al cobrar'),
+            onChanged: _saving || _system ? null : (v) => setState(() => _active = v),
           ),
         const SizedBox(height: 8),
         TextField(
@@ -230,9 +235,122 @@ class _PaymentMethodFormScreenState extends State<PaymentMethodFormScreen> {
         FilledButton.icon(
           onPressed: _saving ? null : _save,
           icon: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)) : const Icon(Icons.check),
-          label: Text(_editing ? 'Guardar cambios' : 'Crear método'),
+          label: Text(_editing ? 'Guardar cambios' : 'Crear forma de pago'),
         ),
       ]),
+    );
+  }
+}
+
+/// Cómo se cuenta el efectivo al cerrar caja: un solo monto o billetes y monedas.
+class _CloseSettingsCard extends StatefulWidget {
+  const _CloseSettingsCard({required this.data, required this.canEdit, required this.onSaved});
+
+  final Map<String, dynamic>? data;
+  final bool canEdit;
+  final VoidCallback onSaved;
+
+  @override
+  State<_CloseSettingsCard> createState() => _CloseSettingsCardState();
+}
+
+class _CloseSettingsCardState extends State<_CloseSettingsCard> {
+  late String _mode = '${widget.data?['mode'] ?? 'monto'}';
+  late final _bills = TextEditingController(text: _join(widget.data?['bills']));
+  late final _coins = TextEditingController(text: _join(widget.data?['coins']));
+  bool _saving = false;
+  Map<String, String> _errors = const {};
+
+  static String _join(dynamic list) => ((list as List?) ?? const [])
+      .map((v) => v is num && v == v.roundToDouble() ? v.toStringAsFixed(0) : (v is num ? v.toStringAsFixed(2) : '$v'))
+      .join(', ');
+
+  static List<String> _split(String text) => text.split(RegExp(r'[\s;,]+')).where((p) => p.isNotEmpty).toList();
+
+  @override
+  void dispose() {
+    _bills.dispose();
+    _coins.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      _saving = true;
+      _errors = const {};
+    });
+    try {
+      final res = await context.read<Session>().api.put('/cash-close-settings', {
+        'mode': _mode,
+        'bills': _split(_bills.text),
+        'coins': _split(_coins.text),
+      });
+      if (!mounted) return;
+      showMessage(context, '${(res as Map)['message']}');
+      widget.onSaved();
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _errors = {for (final entry in e.fieldErrors.entries) entry.key: entry.value.first, if (e.fieldErrors.isEmpty) 'mode': e.message});
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final enabled = widget.canEdit && !_saving;
+    return Card(
+      margin: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Row(children: [
+            Icon(Icons.lock_outline, size: 20, color: Brand.primary),
+            SizedBox(width: 8),
+            Text('Cierre de caja', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          ]),
+          const SizedBox(height: 4),
+          Text('Solo se cuenta el efectivo: las demás formas de pago se muestran aparte con su monto.', style: TextStyle(color: muted, fontSize: 12.5)),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'monto', label: Text('Un solo monto')),
+                ButtonSegment(value: 'denominaciones', label: Text('Billetes y monedas')),
+              ],
+              selected: {_mode},
+              onSelectionChanged: enabled ? (v) => setState(() => _mode = v.first) : null,
+            ),
+          ),
+          if (_mode == 'denominaciones') ...[
+            const SizedBox(height: 10),
+            TextField(
+              controller: _bills,
+              enabled: enabled,
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(labelText: 'Billetes', helperText: 'Separados por coma. Ej.: 200, 100, 50', errorText: _errors['bills']),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _coins,
+              enabled: enabled,
+              keyboardType: TextInputType.text,
+              decoration: InputDecoration(labelText: 'Monedas', helperText: 'Decimales con punto. Ej.: 5, 2, 1, 0.50', errorText: _errors['coins']),
+            ),
+          ],
+          if (_errors['mode'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_errors['mode']!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+          if (widget.canEdit) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton(onPressed: enabled ? _save : null, child: const Text('Guardar')),
+            ),
+          ] else
+            Padding(padding: const EdgeInsets.only(top: 8), child: Text('Solo quien edita las preferencias puede cambiarlo.', style: TextStyle(color: muted, fontSize: 12))),
+        ]),
+      ),
     );
   }
 }

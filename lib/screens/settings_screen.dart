@@ -24,7 +24,7 @@ class SettingsScreen extends StatelessWidget {
         if (me.can('schedules_view'))
           (title: 'Horarios', detail: 'Turnos semanales del personal', icon: Icons.schedule_outlined, color: const Color(0xFF0EA5E9), screen: const StaffSchedulesScreen()),
         if (me.can('payment_methods_view'))
-          (title: 'Métodos de pago', detail: 'Cómo cobras en el salón', icon: Icons.credit_card_outlined, color: const Color(0xFF10B981), screen: const PaymentMethodsScreen()),
+          (title: 'Formas de pago', detail: 'Cómo cobras y cómo se cuenta al cerrar caja', icon: Icons.credit_card_outlined, color: const Color(0xFF10B981), screen: const PaymentMethodsScreen()),
       ];
 
   /// El menú muestra «Configuración» solo si hay al menos un cuadro.

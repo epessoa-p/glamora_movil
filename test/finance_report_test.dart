@@ -37,9 +37,9 @@ void main() {
         'sessions': empty
             ? []
             : [
-                {'id': 1, 'register': 'CAJA 1', 'branch': 'CENTRO', 'status': 'open', 'opened_by': 'ANA', 'opened_at': '2026-11-06 08:00', 'closed_by': null, 'closed_at': null, 'opening': 100, 'cash_in': 300, 'cash_out': 30, 'others_net': 50, 'others': [{'method': 'QR', 'amount': 50}], 'expected': 420, 'counted': null, 'difference': null},
-                {'id': 2, 'register': 'CAJA 2', 'branch': null, 'status': 'closed', 'opened_by': 'ANA', 'opened_at': '2026-11-05 08:00', 'closed_by': 'LUIS', 'closed_at': '2026-11-05 20:00', 'opening': 50, 'cash_in': 100, 'cash_out': 0, 'others_net': 0, 'others': [], 'expected': 150, 'counted': 145, 'difference': -5},
-                {'id': 3, 'register': 'CAJA 3', 'branch': null, 'status': 'closed', 'opened_by': 'ANA', 'opened_at': '2026-11-04 08:00', 'closed_by': 'LUIS', 'closed_at': '2026-11-04 20:00', 'opening': 50, 'cash_in': 0, 'cash_out': 0, 'others_net': 0, 'others': [], 'expected': 50, 'counted': 50, 'difference': 0},
+                {'id': 1, 'register': 'CAJA 1', 'branch': 'CENTRO', 'status': 'open', 'opened_by': 'ANA', 'opened_at': '2026-11-06 08:00', 'closed_by': null, 'closed_at': null, 'opening': 100, 'cash_in': 300, 'cash_out': 30, 'others_net': 50, 'others': [{'method': 'QR', 'amount': 50}], 'legacy': false, 'expected': 370, 'counted': null, 'difference': null},
+                {'id': 2, 'register': 'CAJA 2', 'branch': null, 'status': 'closed', 'opened_by': 'ANA', 'opened_at': '2026-11-05 08:00', 'closed_by': 'LUIS', 'closed_at': '2026-11-05 20:00', 'opening': 50, 'cash_in': 100, 'cash_out': 0, 'others_net': 0, 'others': [], 'legacy': false, 'expected': 150, 'counted': 145, 'difference': -5, 'count': [{'value': 100, 'kind': 'billete', 'qty': 1}, {'value': 0.5, 'kind': 'moneda', 'qty': 3}]},
+                {'id': 3, 'register': 'CAJA 3', 'branch': null, 'status': 'closed', 'opened_by': 'ANA', 'opened_at': '2026-11-04 08:00', 'closed_by': 'LUIS', 'closed_at': '2026-11-04 20:00', 'opening': 50, 'cash_in': 0, 'cash_out': 0, 'others_net': 20, 'others': [{'method': 'QR', 'amount': 20}], 'legacy': true, 'expected': 70, 'counted': 70, 'difference': 0},
               ],
       };
 
@@ -130,7 +130,7 @@ void main() {
     expect(q['tab'], 'movimientos');
     expect(q['scope'], 'caja');
     expect(q['preset'], 'mes', reason: 'comparte el período');
-    expect(find.textContaining('cuadra con los cierres'), findsOneWidget);
+    expect(find.textContaining('El cierre cuenta solo el efectivo'), findsOneWidget);
     expect(find.text('Balance'), findsOneWidget);
     expect(find.text('Por categoría'), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNWidgets(2));
@@ -166,7 +166,13 @@ void main() {
     expect(find.text('Abrió ANA · 06/11 08:00'), findsOneWidget);
     expect(find.text('Cerró LUIS · 05/11 20:00'), findsOneWidget);
     expect(find.text('Ingresos efectivo'), findsNWidgets(3));
-    expect(find.text('Otros medios: QR Bs 50.00'), findsOneWidget);
+    expect(find.text('Otros medios (no se cuentan): QR Bs 50.00'), findsOneWidget, reason: 'abierta: aparte, sin sumar');
+    expect(find.text('Esperado en efectivo'), findsNWidgets(2));
+    expect(find.text('Conteo: 1 × 100 · 3 × 0.50'), findsOneWidget);
+    // Cerrada antes del cambio: «Otros medios» sigue sumando, como entonces.
+    expect(find.text('Esperado en caja'), findsOneWidget);
+    expect(find.text('Otros medios'), findsOneWidget);
+    expect(find.text('Otros medios: QR Bs 20.00'), findsOneWidget);
     expect(find.text('Faltante Bs 5.00'), findsOneWidget);
     expect(find.text('Exacto'), findsOneWidget);
     expect(find.text('Contado'), findsNWidgets(2), reason: 'la abierta aún no se contó');

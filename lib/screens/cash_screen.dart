@@ -10,6 +10,132 @@ import '../widgets/common.dart';
 double _n(dynamic v) => v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
 double? _parse(String s) => double.tryParse(s.trim().replaceAll(',', '.'));
 
+/// 200 → «200», 0.5 → «0.50».
+String _denom(dynamic v) {
+  final d = _n(v);
+  return d == d.roundToDouble() ? d.toStringAsFixed(0) : d.toStringAsFixed(2);
+}
+
+/// Cierre contando billetes y monedas: cantidad por denominación, con el total
+/// y la diferencia en vivo. El servidor vuelve a calcular el total.
+class _CashCountScreen extends StatefulWidget {
+  const _CashCountScreen({required this.denominations, required this.expected, required this.currency, required this.submit});
+
+  final List<Map<String, dynamic>> denominations;
+  final double expected;
+  final String currency;
+  final Future<Map<String, dynamic>> Function(List<Map<String, dynamic>> count) submit;
+
+  @override
+  State<_CashCountScreen> createState() => _CashCountScreenState();
+}
+
+class _CashCountScreenState extends State<_CashCountScreen> {
+  late final _qty = [for (final _ in widget.denominations) TextEditingController()];
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    for (final c in _qty) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  int _q(int i) => int.tryParse(_qty[i].text.trim()) ?? 0;
+
+  /// En centavos, para que 3 × 0.10 dé 0.30 exacto.
+  int get _cents {
+    var total = 0;
+    for (var i = 0; i < widget.denominations.length; i++) {
+      total += (_n(widget.denominations[i]['value']) * 100).round() * _q(i);
+    }
+    return total;
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final count = [
+        for (var i = 0; i < widget.denominations.length; i++)
+          if (_q(i) > 0) {'value': widget.denominations[i]['value'], 'qty': _q(i)},
+      ];
+      final res = await widget.submit(count);
+      if (mounted) Navigator.pop(context, res);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = errorText(e);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final total = _cents / 100;
+    final diffCents = _cents - (widget.expected * 100).round();
+    final diff = diffCents / 100;
+    final exact = diffCents == 0;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Contar efectivo')),
+      body: ListView(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), children: [
+        Text('Efectivo esperado: ${money(widget.expected, widget.currency)}', style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text('Cuenta solo el efectivo: las demás formas de pago no se cuentan.', style: TextStyle(color: muted, fontSize: 12.5)),
+        const SizedBox(height: 8),
+        for (final (i, d) in widget.denominations.indexed)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(children: [
+              Icon(d['kind'] == 'billete' ? Icons.payments_outlined : Icons.toll_outlined, color: muted, size: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Text('${d['kind'] == 'billete' ? 'Billete' : 'Moneda'} de ${_denom(d['value'])}')),
+              SizedBox(
+                width: 90,
+                child: TextField(
+                  key: ValueKey('qty-${d['value']}'),
+                  controller: _qty[i],
+                  enabled: !_saving,
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.end,
+                  decoration: const InputDecoration(hintText: '0', isDense: true),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+            ]),
+          ),
+        const Divider(height: 24),
+        Row(children: [
+          const Expanded(child: Text('Total contado', style: TextStyle(fontWeight: FontWeight.w700))),
+          Text(money(total, widget.currency), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        ]),
+        const SizedBox(height: 4),
+        Row(children: [
+          const Expanded(child: Text('Diferencia')),
+          Text(
+            exact ? 'Exacto' : '${diff > 0 ? 'Sobrante' : 'Faltante'} ${money(diff.abs(), widget.currency)}',
+            style: TextStyle(fontWeight: FontWeight.w700, color: exact ? Brand.success : Brand.danger),
+          ),
+        ]),
+        if (_error != null) Padding(padding: const EdgeInsets.only(top: 10), child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: _saving ? null : _submit,
+          icon: const Icon(Icons.lock_outline),
+          label: const Text('Cerrar caja'),
+        ),
+      ]),
+    );
+  }
+}
+
 /// Abre la caja: con un solo turno abierto va directo a él; si no, al listado
 /// (para abrir una o elegir entre varias). Al volver actualiza el distintivo.
 Future<void> openCashFlow(BuildContext context) async {
@@ -181,18 +307,33 @@ class _CashSessionScreenState extends State<CashSessionScreen> {
 
   Future<void> _close() async {
     final expected = _n(_s!['expected']);
-    final result = await showDialog<Map<String, dynamic>>(
+    // Por billetes y monedas: pantalla de conteo. Si no, un solo monto.
+    final denominations = ((_s!['denominations'] as List?) ?? const []).cast<Map<String, dynamic>>();
+    final byCount = _s!['close_mode'] == 'denominaciones' && denominations.isNotEmpty;
+    final result = await (byCount
+        ? Navigator.push<Map<String, dynamic>>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => _CashCountScreen(
+                denominations: denominations,
+                expected: expected,
+                currency: _cur,
+                submit: (count) async => await _api.post('/cash/${widget.sessionId}/close', {'closing_count': count}) as Map<String, dynamic>,
+              ),
+            ),
+          )
+        : showDialog<Map<String, dynamic>>(
       context: context,
       builder: (_) => _AmountDialog(
         title: 'Cerrar caja',
-        label: 'Dinero contado',
+        label: 'Efectivo contado',
         currency: _cur,
-        help: 'Esperado: ${money(expected, _cur)}',
+        help: 'Efectivo esperado: ${money(expected, _cur)}. Las demás formas de pago no se cuentan.',
         difference: expected,
         action: 'Cerrar caja',
         submit: (amount, _) async => await _api.post('/cash/${widget.sessionId}/close', {'closing_amount': amount}) as Map<String, dynamic>,
       ),
-    );
+    ));
     if (result == null || !mounted) return;
     showMessage(context, '${result['message']}');
     setState(() => _s = result['session'] as Map<String, dynamic>);
@@ -236,7 +377,9 @@ class _CashSessionScreenState extends State<CashSessionScreen> {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final open = s['status'] == 'open';
     final movements = (s['movements'] as List).cast<Map<String, dynamic>>();
-    final byMethod = (s['by_method'] as List).cast<Map<String, dynamic>>();
+    final legacy = s['legacy'] == true;
+    final others = ((s['other_methods'] as List?) ?? const []).cast<Map<String, dynamic>>();
+    final count = ((s['closing_count'] as List?) ?? const []).cast<Map<String, dynamic>>();
     final diff = s['difference'] == null ? null : _n(s['difference']);
     Widget row(String label, double value, {Color? color}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
@@ -252,31 +395,43 @@ class _CashSessionScreenState extends State<CashSessionScreen> {
       ]),
       const SizedBox(height: 4),
       Text(money(_n(s['expected']), _cur), style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
-      Text(open ? 'Dinero que debería haber en caja' : 'Dinero esperado al cierre', style: TextStyle(color: muted)),
+      Text(legacy ? 'Dinero esperado al cierre' : (open ? 'Efectivo que debería haber en caja' : 'Efectivo esperado al cierre'), style: TextStyle(color: muted)),
       const SizedBox(height: 12),
       Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(children: [
             row('Fondo inicial', _n(s['opening'])),
-            row('Ingresos (${s['sales_count']} venta(s) incluidas)', _n(s['income']), color: Brand.success),
-            row('Egresos', -_n(s['expense']), color: Brand.danger),
+            row(legacy ? 'Ingresos (${s['sales_count']} venta(s) incluidas)' : 'Ingresos en efectivo', _n(s['income']), color: Brand.success),
+            row(legacy ? 'Egresos' : 'Egresos en efectivo', -_n(s['expense']), color: Brand.danger),
             if (!open && s['counted'] != null) ...[
               const Divider(height: 18),
               row('Contado', _n(s['counted'])),
+              if (count.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('Conteo: ${count.map((c) => '${c['qty']} × ${_denom(c['value'])}').join(' · ')}', style: TextStyle(color: muted, fontSize: 12.5)),
+                ),
               row(diff!.abs() < 0.005 ? 'Cuadra exacto' : (diff > 0 ? 'Sobrante' : 'Faltante'), diff, color: diff.abs() < 0.005 ? Brand.success : (diff > 0 ? Brand.warning : Brand.danger)),
             ],
           ]),
         ),
       ),
-      if (byMethod.isNotEmpty) ...[
+      if (others.isNotEmpty) ...[
         const SizedBox(height: 12),
-        const Text('Por forma de pago', style: TextStyle(fontWeight: FontWeight.w700)),
+        const Text('Otras formas de pago', style: TextStyle(fontWeight: FontWeight.w700)),
+        Text('No entran en el conteo de efectivo.', style: TextStyle(color: muted, fontSize: 12.5)),
         const SizedBox(height: 6),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(children: [for (final m in byMethod) row('${m['method']}', _n(m['net']))]),
+            child: Column(children: [
+              for (final m in others) row('${m['method']}', _n(m['net'])),
+              if (others.length > 1) ...[
+                const Divider(height: 14),
+                row('Total', others.fold<double>(0, (t, m) => t + _n(m['net']))),
+              ],
+            ]),
           ),
         ),
       ],

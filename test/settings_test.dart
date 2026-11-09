@@ -53,11 +53,13 @@ void main() {
     ..on('PUT /schedules/14', {'message': 'Horario guardado.', 'days': [], 'exceptions': []})
     ..on('GET /payment-methods', {
       'methods': [
-        {'id': 6, 'name': 'Efectivo', 'code': 'efectivo', 'icon': 'bi-cash-coin', 'affects_cash': true, 'is_default': true, 'active': true, 'sort_order': 10},
+        {'id': 6, 'name': 'Efectivo', 'code': 'efectivo', 'is_system': true, 'icon': 'bi-cash-coin', 'affects_cash': true, 'is_default': true, 'active': true, 'sort_order': 10},
         {'id': 9, 'name': 'QR', 'code': 'qr', 'icon': 'bi-qr-code', 'affects_cash': false, 'is_default': false, 'active': false, 'sort_order': 40},
       ],
-      'can': {'create': true, 'edit': true},
+      'can': {'create': true, 'edit': true, 'close_settings': true},
+      'close': {'mode': 'monto', 'modes': [], 'bills': [200, 100, 50, 20, 10], 'coins': [5, 2, 1, 0.5, 0.2, 0.1]},
     })
+    ..on('PUT /cash-close-settings', {'message': 'Cierre de caja guardado.', 'mode': 'denominaciones', 'bills': [100], 'coins': [0.5]})
     ..on('POST /payment-methods', {'message': 'Método de pago creado.', 'method': {}}, status: 201)
     ..on('PUT /payment-methods/9', {'message': 'Método de pago actualizado.', 'method': {}});
 
@@ -114,7 +116,7 @@ void main() {
     expect(find.text('Sucursales'), findsOneWidget);
     expect(find.text('Horarios'), findsOneWidget);
     expect(find.text('Mi empresa'), findsNothing);
-    expect(find.text('Métodos de pago'), findsNothing);
+    expect(find.text('Formas de pago'), findsNothing);
   });
 
   testWidgets('sin ningún permiso de configuración no aparece en el menú', (tester) async {
@@ -182,13 +184,13 @@ void main() {
     expect(find.widgetWithText(AppBar, 'Horarios'), findsOneWidget);
   });
 
-  testWidgets('métodos de pago: insignias, crear y reactivar conservando el código', (tester) async {
+  testWidgets('formas de pago: insignias, crear y reactivar conservando el código', (tester) async {
     final fake = await start(tester);
     await openMenu(tester, 'Configuración');
-    await tester.tap(find.text('Métodos de pago'));
+    await tester.tap(find.text('Formas de pago'));
     await tester.pumpAndSettle();
-    expect(find.text('Predeterminado'), findsOneWidget);
-    expect(find.text('Entra a caja'), findsOneWidget);
+    expect(find.text('Predeterminada'), findsOneWidget);
+    expect(find.text('Siempre habilitado'), findsOneWidget);
     expect(find.text('Inactivo'), findsOneWidget);
 
     await tester.tap(find.text('Nuevo'));
@@ -197,9 +199,9 @@ void main() {
     await reveal(tester, find.text('Pago por celular'));
     await tester.tap(find.text('Pago por celular'));
     await tester.pumpAndSettle();
-    await reveal(tester, find.text('Crear método'));
+    await reveal(tester, find.text('Crear forma de pago'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Crear método'));
+    await tester.tap(find.text('Crear forma de pago'));
     await tester.pumpAndSettle();
     final created = fake.body('POST /payment-methods');
     expect(created['name'], 'Tigo Money');
@@ -211,7 +213,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('QR'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(SwitchListTile, 'Activo'));
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Activa'));
     await tester.pumpAndSettle();
     await reveal(tester, find.text('Guardar cambios'));
     await tester.pumpAndSettle();
@@ -220,5 +222,62 @@ void main() {
     final updated = fake.body('PUT /payment-methods/9');
     expect(updated['active'], true);
     expect(updated['code'], 'qr');
+  });
+testWidgets('formas de pago: el efectivo no se desactiva ni deja de contar', (tester) async {
+    final fake = await start(tester);
+    await openMenu(tester, 'Configuración');
+    await tester.tap(find.text('Formas de pago'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Efectivo'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, 'Editar forma de pago'), findsOneWidget);
+    final cash = tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, 'Cuenta como efectivo'));
+    final active = tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, 'Activa'));
+    expect(cash.onChanged, isNull);
+    expect(active.onChanged, isNull);
+    expect(cash.value && active.value, isTrue);
+    expect(find.text('El efectivo está siempre habilitado y siempre se cuenta'), findsOneWidget);
+    await reveal(tester, find.text('Guardar cambios'));
+    await tester.tap(find.text('Guardar cambios'));
+    await tester.pumpAndSettle();
+    final sent = fake.body('PUT /payment-methods/6');
+    expect(sent['active'], true);
+    expect(sent['affects_cash'], true);
+  });
+
+  testWidgets('cierre de caja: elegir billetes y monedas y su lista', (tester) async {
+    tester.view.physicalSize = const Size(420, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final fake = await start(tester);
+    await openMenu(tester, 'Configuración');
+    await tester.tap(find.text('Formas de pago'));
+    await tester.pumpAndSettle();
+    expect(find.text('Cierre de caja'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Billetes'), findsNothing, reason: 'un solo monto: sin lista');
+    await tester.tap(find.text('Billetes y monedas'));
+    await tester.pumpAndSettle();
+    expect(find.text('200, 100, 50, 20, 10'), findsOneWidget);
+    expect(find.text('5, 2, 1, 0.50, 0.20, 0.10'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextField, 'Billetes'), '100');
+    await tester.enterText(find.widgetWithText(TextField, 'Monedas'), '0.50');
+    await tester.tap(find.text('Guardar'));
+    await tester.pumpAndSettle();
+    expect(fake.body('PUT /cash-close-settings'), {'mode': 'denominaciones', 'bills': ['100'], 'coins': ['0.50']});
+    expect(find.text('Cierre de caja guardado.'), findsOneWidget);
+  });
+
+  testWidgets('cierre de caja: sin permiso de preferencias solo se ve', (tester) async {
+    final fake = await start(tester);
+    fake.on('GET /payment-methods', {
+      'methods': [{'id': 6, 'name': 'Efectivo', 'code': 'efectivo', 'is_system': true, 'icon': 'bi-cash-coin', 'affects_cash': true, 'is_default': true, 'active': true, 'sort_order': 0}],
+      'can': {'create': false, 'edit': false, 'close_settings': false},
+      'close': {'mode': 'denominaciones', 'bills': [100], 'coins': [1]},
+    });
+    await openMenu(tester, 'Configuración');
+    await tester.tap(find.text('Formas de pago'));
+    await tester.pumpAndSettle();
+    expect(find.text('Guardar'), findsNothing);
+    expect(find.text('Solo quien edita las preferencias puede cambiarlo.'), findsOneWidget);
   });
 }
